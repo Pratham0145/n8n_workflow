@@ -37,9 +37,9 @@ Open the n8n UI in your browser (default: http://localhost:5678).
 Go to Workflows → Import from File.
 
 Select the file:
-
+```
 Fetch-data using MCP/MYSQL using MCP.json
-
+```
 
 Save the workflow.
 
@@ -94,6 +94,6 @@ You can extend it by adding more nodes for transformations, filtering, or connec
 This project is licensed under the MIT License.
 
 
----
-
+```
 Would you like me to also **add a "Preview" section with a sample screenshot placeholder** 
+```
