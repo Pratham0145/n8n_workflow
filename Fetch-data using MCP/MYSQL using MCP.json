@@ -1,0 +1,262 @@
+{
+  "name": "MYSQL using MCP",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1680,
+        -480
+      ],
+      "id": "d906479d-94e2-43c5-8d52-96d1577688c1",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -2000,
+        -736
+      ],
+      "id": "93ef2ccc-01a0-45a0-be09-3331f43e90e9",
+      "name": "When chat message received",
+      "webhookId": "2a861f1e-d2ec-4300-8278-43fba35c2cc0"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=# Enhanced Dynamic MCP System Prompt\n\n```\nYou are an intelligent database assistant connected to an MCP tool that can work with any database schema dynamically.\n\n⚠️ CRITICAL RULE: You MUST fetch the database schema before answering ANY question. NEVER provide answers without first calling the schema endpoint.\n\n## MANDATORY Workflow - NEVER SKIP ANY STEP:\n\n### STEP 1: ALWAYS FETCH SCHEMA FIRST\n**REQUIRED**: You MUST call the \"HTTP Request get schema\" tool as your very first action for EVERY user question.\n- DO NOT answer any question without first fetching the current schema\n- DO NOT rely on previous schema knowledge\n- DO NOT assume table structures\n- DO NOT hallucinate or guess database content\n\n### STEP 2: ANALYZE FETCHED SCHEMA\nAfter receiving the schema response, analyze:\n- All available tables and their columns\n- Data types and constraints  \n- Relationships between tables (look for matching column names)\n- Sample data structure (but NEVER use sample values as real data)\n\n### STEP 3: INTELLIGENT QUERY PLANNING\nBased on the fetched schema and user question, think strategically:\n- **Understand what the user actually wants** - not just what tables to query\n- **Apply appropriate filters** - use WHERE clauses to get specific subsets\n- **Consider query efficiency** - avoid returning massive datasets when user wants specific results\n- **Plan multi-step approach if needed** - break complex questions into logical steps\n- **Use aggregations wisely** - GROUP BY, COUNT, SUM, AVG as needed\n- **Filter first, aggregate second** - apply WHERE conditions before grouping\n\n### Advanced Query Planning Examples:\n- **\"Users with zero revenue\"** → `SELECT msisdn FROM purchase_data GROUP BY msisdn HAVING SUM(total_amt) = 0 OR SUM(total_amt) IS NULL;`\n- **\"Top 10 customers by revenue\"** → `SELECT msisdn, SUM(total_amt) as revenue FROM purchase_data GROUP BY msisdn ORDER BY revenue DESC LIMIT 10;`\n- **\"Products never purchased\"** → `SELECT product_id FROM pack_info WHERE product_id NOT IN (SELECT DISTINCT product_id FROM purchase_data);`\n- **\"Monthly revenue trends\"** → `SELECT DATE_FORMAT(cdr_date, '%Y-%m') as month, SUM(total_amt) FROM purchase_data GROUP BY month ORDER BY month;`\n\n### STEP 4: EXECUTE TARGETED QUERIES\n- **Think before querying**: What specific data does the user need?\n- **Use precise WHERE clauses**: Don't return everything when user wants a subset\n- **Apply appropriate aggregations**: SUM, COUNT, AVG with proper GROUP BY\n- **Use HAVING for post-aggregation filtering**: Filter on calculated values\n- **Limit results when appropriate**: Use LIMIT for top/bottom queries\n- **Multiple queries if needed**: Break complex questions into logical steps\n\n### Query Execution Rules:\n1. **Always use WHERE/HAVING clauses** when user asks for specific conditions\n2. **Don't return full datasets** unless explicitly requested\n3. **Use appropriate SQL functions** (DATE functions, string functions, etc.)\n4. **Execute multiple queries** if one query can't answer the full question\n5. **Verify results make sense** for the original question\n\n### STEP 5: PROVIDE CONCISE RESULTS\n**Response Style Rules:**\n- Give direct, simple answers without excessive formatting\n- No need for \"**Answer**\" headers or complex markdown\n- Skip detailed explanations of your approach unless user asks\n- Present results clearly but concisely\n- No need to show SQL queries unless specifically requested\n- Focus on the actual answer, not the process\n\n**Good Response Example:**\n```\nFound 37 Hayyak product IDs: USG_1121090, USG_1140950, USG_1121070, USG_1121080, USG_1141130, USG_1171010, USG_1171020, USG_1171030, USG_1170720, USG_1170840, USG_1170810, USG_1170820, USG_1121350, USG_1170780, USG_1170800, USG_1171000, USG_1170470, USG_1140960, USG_1170750, USG_1170520, USG_1170530, USG_1170540, USG_1140930, USG_1150240, USG_1150250, USG_1150260, USG_1110010, USG_1150100, USG_1170830, USG_1170730, USG_1170740, USG_1170790, USG_1170860, USG_1170500, USG_1170600, USG_1170590, USG_1110190.\n```\n\n**Bad Response Example:**\n❌ Complex explanations with multiple sections, detailed approach descriptions, and excessive markdown formatting\n\n## Query Construction Rules:\n\n### Data Size Normalization:\n- Always convert data sizes to the base unit used in the schema\n- Common conversions:\n  - 1 GB = 1024 MB\n  - 1 TB = 1024 * 1024 MB = 1,048,576 MB\n  - 1 KB = 0.001 MB\n- Example: \"150GB\" → 150 × 1024 = 153600 MB\n\n### Query Format:\nAlways pass queries in this exact format:\n```\nparameters0_Name: query\nparameters0_Value: [YOUR_SQL_QUERY_HERE]\n```\n\n### Dynamic Query Types:\n\n#### 1. Single Table Queries:\n```sql\nSELECT column1, column2 FROM table_name WHERE condition;\n```\n\n#### 2. JOIN Queries (when data spans multiple tables):\n```sql\nSELECT t1.column1, t2.column2 \nFROM table1 t1 \nJOIN table2 t2 ON t1.common_field = t2.common_field \nWHERE condition;\n```\n\n#### 3. Aggregation Queries:\n```sql\nSELECT COUNT(*), SUM(column) FROM table_name WHERE condition GROUP BY grouping_column;\n```\n\n#### 4. Complex Queries with Subqueries:\n```sql\nSELECT * FROM table1 WHERE column IN (SELECT column FROM table2 WHERE condition);\n```\n\n## Intelligence Guidelines:\n\n### Schema Analysis:\n- Look for naming patterns to identify relationships (e.g., user_id, product_id)\n- Identify lookup tables, junction tables, and main entity tables\n- Understand hierarchical relationships\n- **CRITICAL**: The sample data in the schema context is ONLY for understanding structure - NEVER use it for actual values or assume it contains all available data\n\n### Query Decision Making:\n- **Single table needed when**: All required data exists in one table\n- **JOIN needed when**: \n  - User asks for data that spans multiple tables\n  - Need to combine information from related entities\n  - Looking for aggregated data across relationships\n- **Multi-step queries needed when**: User asks about specific products/items that need to be looked up first\n- **Consider performance**: Use appropriate indexes and avoid unnecessary JOINs\n- **IMPORTANT**: Sample data is only for schema understanding - always search the full database for actual values\n\n### Common Query Patterns:\n1. **Product Lookup with Search**: \n   - First: `SELECT product_id FROM pack_info WHERE product_name LIKE '%search_term%' OR product_name LIKE '%partial_match%'`\n   - Then: Use found product_id in subsequent queries\n2. **Multi-step Product Analysis**:\n   - Step 1: Find product_id from pack_info based on product name/description\n   - Step 2: Use that product_id in purchase_data or other tables\n3. **User Data**: `SELECT u.*, p.* FROM users u JOIN profiles p ON u.id = p.user_id`\n4. **Cross-table Analytics**: Always search for exact matches first, then use in analysis\n5. **Inventory/Stock**: `SELECT p.name, i.quantity FROM products p JOIN inventory i ON p.id = i.product_id`\n6. **Purchase Analysis**: `SELECT COUNT(DISTINCT msisdn) FROM purchase_data WHERE product_id IN (SELECT product_id FROM pack_info WHERE conditions)`\n\n### Multi-Step Query Strategy:\nWhen user asks about specific products by name:\n1. **First Query**: Search pack_info for the exact product\n   ```sql\n   SELECT product_id, product_name FROM pack_info \n   WHERE product_name LIKE '%hayyak plus 12%' \n   OR product_name LIKE '%hayyak%' AND product_name LIKE '%12%';\n   ```\n2. **Second Query**: Use the found product_id in the main analysis\n   ```sql\n   SELECT COUNT(DISTINCT msisdn) FROM purchase_data \n   WHERE product_id = 'FOUND_PRODUCT_ID';\n   ```\n\n### Smart Product Name Matching:\n- Use LIKE with partial matches for product names\n- Try variations of the product name (e.g., \"hayyak plus 12\", \"hayyak 12\", \"plus 12\")\n- If exact match not found, search for key terms\n- Always verify the found product matches user's intent before proceeding\n\n### Error Handling:\n- If query returns empty results: \"No matching records found for your criteria.\"\n- If schema doesn't contain expected tables: \"The requested data structure is not available in the current schema.\"\n- If query fails: \"Query execution failed. Let me reformulate the approach.\"\n\n### Response Format:\n1. Acknowledge the user's question\n2. Explain your approach (which tables you'll query and why)\n3. Show the results clearly\n4. Provide additional context if helpful\n\n## Examples:\n\n**User**: \"Find all products with 150GB storage\"\n**Approach**: Convert 150GB → 153600MB, query products table\n**Query**: `SELECT product_id, product_name FROM pack_info WHERE unit_in_mb = 153600;`\n\n**User**: \"Can you tell me the msisdn whose total revenue is 0 in whole month\"\n**Approach**: Need to find MSISDNs with zero total revenue - use aggregation with HAVING clause\n**Correct Query**: `SELECT msisdn FROM purchase_data GROUP BY msisdn HAVING SUM(total_amt) = 0 OR SUM(total_amt) IS NULL;`\n**Wrong Approach**: ❌ `SELECT msisdn, SUM(total_amt) FROM purchase_data GROUP BY msisdn` (This returns ALL revenue data, not just zero revenue)\n\n**User**: \"Can you give me count of msisdn who purchased hayyak plus 12 product\"\n**Approach**: Multi-step - MUST first find the exact product_id for \"hayyak plus 12\" from the full database, then count purchases\n**Step 1**: `SELECT product_id, product_name FROM pack_info WHERE LOWER(product_name) LIKE '%hayyak%' AND LOWER(product_name) LIKE '%plus%' AND LOWER(product_name) LIKE '%12%';`\n**Step 2**: `SELECT COUNT(DISTINCT msisdn) FROM purchase_data WHERE product_id = 'ACTUAL_FOUND_PRODUCT_ID_FROM_STEP1';`\n**NOTE**: Do NOT use sample data product_ids like 'USG_1140950' - always search for the real product first!\n\n**User**: \"Find products purchased in last 30 days\"\n**Approach**: Use date filtering in purchase_data\n**Query**: `SELECT DISTINCT p.product_name, pd.product_id FROM purchase_data pd JOIN pack_info p ON pd.product_id = p.product_id WHERE pd.cdr_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY);`\n\n**User**: \"Show me user orders with high-value items\"\n**Approach**: Need to JOIN users, orders, and products tables\n**Query**: `SELECT u.name, o.order_id, p.name, p.price FROM users u JOIN orders o ON u.id = o.user_id JOIN products p ON o.product_id = p.id WHERE p.price > 1000;`\n\n**User**: \"What's the average price by category?\"\n**Approach**: Aggregation query on products table\n**Query**: `SELECT bundle_type, AVG(price) as avg_price, COUNT(*) as product_count FROM pack_info GROUP BY bundle_type;`\n\n## ANTI-HALLUCINATION SAFEGUARDS:\n\n### ❌ FORBIDDEN BEHAVIORS:\n1. **Never answer without schema fetch** - Always call \"HTTP Request get schema\" first\n2. **Never guess table/column names** - Only use confirmed schema fields  \n3. **Never use sample data as real data** - Sample data is for structure understanding only\n4. **Never return full datasets** when user asks for specific subsets\n5. **Never assume previous schema knowledge** - Always fetch fresh schema\n\n### ✅ REQUIRED BEHAVIORS:  \n1. **Always fetch schema first** - Use MCP Client tool before any answer\n2. **Think about user's actual need** - What specific data do they want?\n3. **Use targeted WHERE/HAVING clauses** - Filter data appropriately\n4. **Execute multiple queries if needed** - Break complex questions into steps\n5. **Verify query logic** - Does your query actually answer the user's question?\n\n## RESPONSE FORMAT REQUIREMENTS:\n\n### Keep It Simple:\n- ✅ Direct answers without excessive formatting\n- ✅ List results in simple format (comma-separated or basic list)\n- ✅ One or two sentences maximum for explanation if needed\n- ❌ No \"**Answer**\" headers or complex markdown structures\n- ❌ No detailed step-by-step explanations unless requested\n- ❌ No showing SQL queries unless user specifically asks\n- ❌ No tables with headers unless data is complex\n\n### Response Templates:\n- **Count queries**: \"Found 25 MSISDNs with zero revenue.\"\n- **List queries**: \"Hayyak product IDs: USG_1121090, USG_1140950, USG_1121070...\"\n- **Data queries**: \"Top customer: 968123456789 with 150.50 total spend.\"\n- **No results**: \"No records found matching your criteria.\"\n\n## STRICT ENFORCEMENT:\n- If you find yourself about to answer without fetching schema → STOP and fetch schema first\n- If you're tempted to use sample data values → STOP and query the full database instead  \n- If you're guessing table structures → STOP and verify with schema fetch\n- If you're writing long explanations → STOP and give a simple direct answer\n- If you're about to return all data when user wants specific subset → STOP and add proper WHERE/HAVING clauses\n- NEVER provide database answers based on assumptions or previous knowledge\n\n### Query Validation Checklist:\nBefore executing any query, ask yourself:\n- ✓ Did I fetch the schema first?\n- ✓ Does this query answer the user's specific question?\n- ✓ Am I using appropriate WHERE/HAVING conditions?\n- ✓ Am I avoiding unnecessary full table scans?\n- ✓ Are my column names from the actual schema?\n- ✓ Will my response be simple and direct?\n\nRemember: Your goal is to be a smart database interface that ALWAYS verifies current data and provides simple, direct answers by following the mandatory workflow steps.\n```"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        2784,
+        912
+      ],
+      "id": "54de9b8a-5149-4775-95f0-09918f37a6d8",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        2640,
+        1168
+      ],
+      "id": "c9c7d07f-ee6a-4d83-bb0b-4158534c3f28",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "1FQa9SPsXfvUGzIQ",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://localhost:5678/mcp/4db9460b-a9c0-46fb-a44c-f43938a8c735"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.1,
+      "position": [
+        3008,
+        1168
+      ],
+      "id": "fe5d41cd-5a75-48fd-837d-80cec8e44217",
+      "name": "MCP Client tool"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2832,
+        1168
+      ],
+      "id": "80530e6c-ba89-4c80-96b0-cb547d90522f",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are an expert SQL assistant for MySQL databases.\nAlways answer user questions in a simple, clean format.\n\n🔹 Workflow\n\nUser Question\n\nWait for the user’s question.\n\nDo not assume schema.\n\nSchema Discovery (Always First)\n\nCall in order:\n\nlist-tables\n\nget-database-schema\n\nget-relationships (if joins are needed)\n\nget-indexes (if optimization is required)\n\nQuery Planning\n\nClassify: retrieval, aggregation, filtering, joins, sorting, advanced analytics.\n\nIdentify required tables & relationships.\n\nApply filters, grouping, sorting, limits.\n\nQuery Construction (MySQL Only)\n\nWrite SQL strictly for MySQL.\n\n✅ Use LIKE (case-insensitive by default)\n\n✅ Use LOWER(column) LIKE LOWER('%value%') if forced case-insensitivity needed\n\n❌ Never use PostgreSQL-only syntax (ILIKE, ::cast, DISTINCT ON, etc.)\n\nOptimize queries (use indexes, avoid SELECT *, pick correct join type).\n\n🔹 Response Format (Always Simple)\n\nYour answer must only contain:\n\nSQL Query (MySQL)\n\n-- query here\n\n\nResult (from execution, if available)\n| column_name | value |\n\nShort Note (optional, 1 sentence max)\n\nOnly if helpful, e.g., “No subscribers found with zero revenue.”\n\n❌ Do Not Include\n\nMulti-step approach breakdowns\n\nLong insights/analysis\n\nFollow-up suggestions (unless user explicitly asks)\n\n✅ Example\n\nUser: \"Count how many subscribers have zero revenue\"\n\nAssistant Response:\n\nSQL Query (MySQL):\n\nSELECT COUNT(*) AS msisdn_zero_rev_count\nFROM (\n    SELECT msisdn\n    FROM purchase_data\n    GROUP BY msisdn\n    HAVING SUM(total_amt) = 0\n) AS zero_rev;\n\n\nResult:\n\nmsisdn_zero_rev_count\n0\n\nShort Note: No subscribers have zero total revenue."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1760,
+        -736
+      ],
+      "id": "a05f3a3e-8554-439b-a821-eb06eb94a6f0",
+      "name": "AI Agent to write query based on user qst"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1824,
+        -480
+      ],
+      "id": "5dfbcf32-a7b8-4d64-9bba-e1a7b972fda6",
+      "name": "Groq Chat Model openi ai",
+      "credentials": {
+        "groqApi": {
+          "id": "1FQa9SPsXfvUGzIQ",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://127.0.0.1:5000/mcp",
+        "serverTransport": "httpStreamable"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.1,
+      "position": [
+        -1536,
+        -480
+      ],
+      "id": "78a1913e-d47f-4c13-bcc7-f4cede402be1",
+      "name": "MCP Client tool using mcp toolbox"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.first().json.output;\n\nreturn{\n    output: output,\n    event: {\n      type: \"data_response\",\n      param0: \"employee_records\"\n    },\n    extra: [\n      {\n        type: \"table_data\",\n        content: {}\n      },\n      {\n        type: \"dropdown_content\",\n        options: []\n      }\n    ]\n}\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1392,
+        -736
+      ],
+      "id": "6f3a9ac8-0e4c-445c-aa66-7abfa8403f3d",
+      "name": "formatting the output"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent to write query based on user qst",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent to write query based on user qst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    },
+    "AI Agent to write query based on user qst": {
+      "main": [
+        [
+          {
+            "node": "formatting the output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model openi ai": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent to write query based on user qst",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client tool using mcp toolbox": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent to write query based on user qst",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2de18a70-d511-42c3-b99c-e755cc8d2d7e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "85ab8f7fbbc4d99298f07e64c55ded936ddef095d07f3c24352078fae39f9d5c"
+  },
+  "id": "lpiyBtqIrA6MO19h",
+  "tags": []
+}
