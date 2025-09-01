@@ -1,0 +1,78 @@
+sources:
+  my-mysql-source:
+    kind: mysql
+    host: 127.0.0.1
+    port: 3306
+    database: chatbot_logs
+    user: root
+    password: pratham0145
+
+tools:
+  # Tool to get database schema information
+  get-table-schema:
+    kind: mysql-sql
+    source: my-mysql-source
+    description: Get the schema information for all tables in the database including table names, column names, data types, and constraints.
+    parameters: []
+    statement: |
+      SELECT 
+        TABLE_NAME,
+        COLUMN_NAME,
+        DATA_TYPE,
+        IS_NULLABLE,
+        COLUMN_DEFAULT,
+        COLUMN_KEY,
+        EXTRA,
+        COLUMN_COMMENT
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE()
+      ORDER BY TABLE_NAME, ORDINAL_POSITION;
+
+  # Tool to get specific table schema
+  get-specific-table-schema:
+    kind: mysql-sql
+    source: my-mysql-source
+    description: Get detailed schema information for a specific table.
+    parameters:
+      - name: table_name
+        type: string
+        description: The name of the table to get schema for.
+    statement: |
+      SELECT 
+        COLUMN_NAME,
+        DATA_TYPE,
+        IS_NULLABLE,
+        COLUMN_DEFAULT,
+        COLUMN_KEY,
+        EXTRA,
+        COLUMN_COMMENT
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
+      ORDER BY ORDINAL_POSITION;
+
+  # Tool to list all tables
+  list-tables:
+    kind: mysql-sql
+    source: my-mysql-source
+    description: List all tables in the current database.
+    parameters: []
+    statement: |
+      SELECT 
+        TABLE_NAME,
+        TABLE_TYPE,
+        TABLE_COMMENT
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_SCHEMA = DATABASE();
+
+  # Tool for dynamic SQL execution - NO PARAMETERS for mysql-execute-sql
+  execute-sql-query:
+    kind: mysql-execute-sql
+    source: my-mysql-source
+    description: Execute a custom SQL query. Use this tool to run SELECT, INSERT, UPDATE, or DELETE statements. The agent will provide the full SQL query.
+
+toolsets:
+  dynamic-mysql-toolset:
+    - get-table-schema
+    - get-specific-table-schema
+    - list-tables
+    - execute-sql-query
