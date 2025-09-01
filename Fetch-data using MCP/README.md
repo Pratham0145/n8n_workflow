@@ -13,11 +13,11 @@ Create a tools.yaml file with your MySQL configuration. Here's an example adapte
 sources:
   my-mysql-source:
     kind: mysql
-    host: 127.0.0.1
-    port: 3306
-    database: chatbot_logs
-    user: root
-    password: pratham0145
+    host: 
+    port: 
+    database: 
+    user: 
+    password: 
 
 tools:
   # Tool to get database schema information
