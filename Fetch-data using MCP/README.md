@@ -1,7 +1,7 @@
 1. Install MCP Toolbox
 Download the latest version of Toolbox as a binary:
 ```
-# for winos
+# for win os
 
 curl -O https://storage.googleapis.com/genai-toolbox/v0.13.0/windows/amd64/toolbox.exe
 ```
