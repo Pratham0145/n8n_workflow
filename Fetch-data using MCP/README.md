@@ -90,7 +90,7 @@ toolsets:
     - execute-sql-query
 ```
 
-
+###** NOTE : TOOLBOX.exe and TOOLS.yaml file should be in same location**
 
 
 3. Start the Toolbox Server
